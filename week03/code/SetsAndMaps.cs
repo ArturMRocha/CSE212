@@ -21,10 +21,29 @@ public static class SetsAndMaps
     /// <param name="words">An array of 2-character words (lowercase, no duplicates)</param>
     public static string[] FindPairs(string[] words)
     {
-        // TODO Problem 1 - ADD YOUR CODE HERE
-        return [];
-    }
+        // Use a HashSet for O(1) average time complexity for lookups.
+        var wordSet = new HashSet<string>(words);
+        var pairs = new List<string>();
 
+        // Iterate through each word once.
+        foreach (var word in words)
+        {
+            // Create the reversed version of the word.
+            string reversed = new string(new[] { word[1], word[0] });
+
+            // Check if the reversed word exists in the set.
+            // Also, check that word < reversed to add pairs only once
+            // (e.g., add "am & ma" but not "ma & am").
+            // This condition also implicitly handles the palindrome case (e.g., "aa"),
+            // as a word will never be less than itself.
+            if (wordSet.Contains(reversed) && word.CompareTo(reversed) < 0)
+            {
+                pairs.Add($"{word} & {reversed}");
+            }
+        }
+
+        return pairs.ToArray();
+    }
     /// <summary>
     /// Read a census file and summarize the degrees (education)
     /// earned by those contained in the file.  The summary
@@ -42,7 +61,19 @@ public static class SetsAndMaps
         foreach (var line in File.ReadLines(filename))
         {
             var fields = line.Split(",");
-            // TODO Problem 2 - ADD YOUR CODE HERE
+            if (fields.Length > 3)
+            {
+                var degree = fields[3].Trim();
+                if (degrees.ContainsKey(degree))
+                {
+                    degrees[degree]++;
+                }
+                else
+                {
+                    degrees[degree] = 1;
+                }
+            }
+
         }
 
         return degrees;
@@ -66,10 +97,42 @@ public static class SetsAndMaps
     /// </summary>
     public static bool IsAnagram(string word1, string word2)
     {
-        // TODO Problem 3 - ADD YOUR CODE HERE
-        return false;
-    }
+        var charCount = new Dictionary<char, int>();
 
+        foreach (var c in word1.Replace(" ", "").ToLower())
+        {
+            if (charCount.ContainsKey(c))
+            {
+                charCount[c]++;
+            }
+            else
+            {
+                charCount[c] = 1;
+            }
+        }
+
+        foreach (var c in word2.Replace(" ", "").ToLower())
+        {
+            if (charCount.ContainsKey(c))
+            {
+                charCount[c]--;
+                if (charCount[c] == 0)
+                {
+                    charCount.Remove(c);
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return charCount.Count == 0;
+    }
+}
+
+public static class EarthquakeData
+{
     /// <summary>
     /// This function will read JSON (Javascript Object Notation) data from the 
     /// United States Geological Service (USGS) consisting of earthquake data.
@@ -88,6 +151,9 @@ public static class SetsAndMaps
     {
         const string uri = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
         using var client = new HttpClient();
+        // It's good practice to set a User-Agent for public APIs.
+        client.DefaultRequestHeaders.Add("User-Agent", "C# App");
+
         using var getRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
         using var jsonStream = client.Send(getRequestMessage).Content.ReadAsStream();
         using var reader = new StreamReader(jsonStream);
@@ -96,11 +162,11 @@ public static class SetsAndMaps
 
         var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
 
-        // TODO Problem 5:
-        // 1. Add code in FeatureCollection.cs to describe the JSON using classes and properties 
-        // on those classes so that the call to Deserialize above works properly.
-        // 2. Add code below to create a string out each place a earthquake has happened today and its magitude.
-        // 3. Return an array of these string descriptions.
-        return [];
+        // Use LINQ to select the properties from each feature and format them.
+        // The .Select() method transforms each 'feature' object into a formatted string.
+        // The .ToArray() method converts the resulting collection into a string array.
+        return featureCollection.Features
+            .Select(feature => $"{feature.Properties.Place} - Mag {feature.Properties.Mag}")
+            .ToArray();
     }
 }
